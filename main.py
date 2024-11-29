@@ -1,9 +1,9 @@
 import asyncio
-
+import shutil
 
 from database import Database
 from fastapi import status
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
@@ -133,6 +133,7 @@ async def tour_page(request: Request, tour_id: int):
 @limiter.limit("120/minute")
 async def add_tour_request(
         request: Request,
+        photos: list[UploadFile] = File(...),
         title: str = Form(...),
         start_time: str = Form(...),
         duration: str = Form(...),
@@ -143,8 +144,19 @@ async def add_tour_request(
     data = decode_jwt(request.cookies.get("Authorization"))
     tour_agency = db.get_agency_by_id(data.get("tour_agency_id"))
     if db.login_user(data.get("email"), data.get("password")):
-        tour_id = db.add_tour(title, start_time, duration, route, tags, tour_agency, photo=None)
+        print(data.get("tour_agency_id"))
+        tour_id = db.add_tour(title, start_time, duration, route, tags, tour_agency, None, data.get("tour_agency_id"))
         db.add_description(tour_id, description, "")
+
+        filenames = []
+
+        for i in range(len(photos)):
+            with open(f'static/photo/tour_{tour_id}_{i}.png', 'wb') as buffer:
+                shutil.copyfileobj(photos[i].file, buffer)
+            filenames.append(f'tour_{tour_id}_{i}.png')
+
+        db.photos_update(tour_id, filenames)
+
         return templates.TemplateResponse(request=request, name="tour_added.html")
     return "NO PERMISSION"
 
@@ -199,9 +211,11 @@ async def admin_edit_tour(request: Request, tour_id: int = None):
     args = db.get_all_tours_agency(tour_agency_id)
     tour_list = [Tour(*args) for args in args]
     current_tour = db.get_tour_by_id(tour_id)
+    current_tour_descriptions = db.get_description_tour(tour_id)
     if tour_id is not None:
         return templates.TemplateResponse(request=request, name="edit_tour.html", context={
             "tours": tour_list,
+            "descriptions": TourDescription(*current_tour_descriptions),
             "is_edit": True,
             "current_tour": Tour(*current_tour)
         })
@@ -224,7 +238,7 @@ async def admin_edit_tour_submit(
     description: str = Form(...)
     ):
     db.edit_tour(tour_id, title, start_time, duration, route, tags, description)
-    return templates.TemplateResponse(request=request, name="submit.html")
+    return templates.TemplateResponse(request=request, name="tour_added.html")
 
 
 @app.get("/booking/tour/{tour_id}", response_class=HTMLResponse)

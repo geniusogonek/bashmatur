@@ -37,10 +37,10 @@ class Database:
         )
         """)
 
-    def add_tour(self, title, start_time, duration, route, tags, tour_agency, photo):
+    def add_tour(self, title, start_time, duration, route, tags, tour_agency, photo, agency_id):
         self.connection.execute(f"""
-        INSERT INTO tours (title, start_time, duration, route, tags, tour_agency, photo)
-        VALUES ({", ".join((f"'{parameter}'" for parameter in (title, start_time, duration, route, tags, tour_agency, photo)))})
+        INSERT INTO tours (title, start_time, duration, route, tags, tour_agency, photo, agency_id)
+        VALUES ({", ".join((f"'{parameter}'" for parameter in (title, start_time, duration, route, tags, tour_agency, photo, agency_id)))})
         """)
         self.connection.commit()
         cursor = self.connection.cursor()
@@ -48,23 +48,23 @@ class Database:
         result = cursor.fetchone()[0]
         return result
 
-    def add_description(self, tour_id, description, program, photo="tour_18_2.png"):
+    def add_description(self, tour_id, description, program):
         self.connection.execute(f"""
-        INSERT INTO tour_descriptions (tour_id, description, program, photo)
-        VALUES ('{tour_id}', '{description}', '{program}', '{photo}')
+        INSERT INTO tour_descriptions (tour_id, description, program)
+        VALUES ('{tour_id}', '{description}', '{program}')
         """)
 
     def get_all_tours(self):
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM tours")
-        res = cursor.fetchall()
+        res = cursor.fetchall()[::-1]
         cursor.close()
         return res
 
     def get_all_tours_agency(self, agency_id):
         cursor = self.connection.cursor()
         cursor.execute(f"SELECT * FROM tours WHERE agency_id = '{agency_id}'")
-        res = cursor.fetchall()
+        res = cursor.fetchall()[::-1]
         cursor.close()
         return res
 
@@ -77,6 +77,23 @@ class Database:
         res_tour = cursor.fetchone()
         cursor.close()
         return res_tour
+
+    def photos_update(self, tour_id, photos):
+        photos = photos[::-1]
+
+        self.connection.execute(f"""
+                UPDATE tours
+                SET photo = '{photos[0]}'
+                WHERE id = '{tour_id}'
+                """)
+
+        self.connection.execute(f"""
+                UPDATE tour_descriptions
+                SET photo = '{', '.join(photos)}' 
+                WHERE tour_id = '{tour_id}'
+                """)
+
+        self.connection.commit()
 
     def edit_tour(self, tour_id, title, start_time, duration, route, tags, description):
         self.connection.execute(f"""

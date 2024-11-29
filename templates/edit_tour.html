@@ -17,7 +17,7 @@
                 <img src="/static/photo/{{ tour.photo }}" alt="{{ tour.title }}">
                 <h3>{{ tour.title }}</h3>
                 <p>Дата начала: {{ tour.start_time }}</p>
-                <p>Длительность: {{ tour.duration }} дней</p>
+                <p>Длительность: {{ tour.duration }}</p>
             </div>
             {% endfor %}
         </div>
@@ -42,14 +42,13 @@
                 <input value="{{ current_tour.tags }}" type="text" id="tags" name="tags" placeholder="Теги через запятую" required>
 
                 <label for="description">Описание</label>
-                <textarea id="description" name="description" rows="4"></textarea>
+                <textarea id="description" name="description" rows="4">{{ descriptions.description }}</textarea>
 
                 <button type="submit">Изменить</button>
-                <a href="/add_tour">Создать тур</a>
             </form>
         </div>
         {% else %}
-        <a class="add-tour-btn" href="/add_tour">Создать анкету</a>
+        <a class="add-tour-btn" href="/add_tour">Создать тур</a>
         {% endif %}
     </div>
 </body>
